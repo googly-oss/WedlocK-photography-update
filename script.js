@@ -15,39 +15,6 @@
  }
 })();
 
-/* Hero reel autoplay + browser-safe sound control */
-(function(){
-  const reel = document.getElementById('heroReel');
-  const sound = document.getElementById('heroReelSound');
-  if(!reel || !sound) return;
-
-  reel.muted = true;
-  const tryPlay = () => {
-    const p = reel.play();
-    if(p && typeof p.catch === 'function') p.catch(()=>{});
-  };
-  tryPlay();
-
-  sound.addEventListener('click', async () => {
-    if(reel.muted){
-      reel.muted = false;
-      try{
-        await reel.play();
-        sound.textContent = 'Sound on';
-        sound.classList.add('is-on');
-        sound.setAttribute('aria-label','Turn reel sound off');
-      }catch(e){
-        reel.muted = true;
-        sound.textContent = 'Tap for sound';
-      }
-    }else{
-      reel.muted = true;
-      sound.textContent = 'Sound';
-      sound.classList.remove('is-on');
-      sound.setAttribute('aria-label','Turn reel sound on');
-    }
-  });
-})();
 
 // Reliable back-to-top button on every page
 (function(){
