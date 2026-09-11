@@ -1,19 +1,64 @@
-const body=document.body, nav=document.querySelector('.nav'), menu=document.querySelector('.menu'), mobile=document.querySelector('.mobile-nav');
-window.addEventListener('scroll',()=>{nav?.classList.toggle('scrolled',scrollY>30);const h=document.documentElement.scrollHeight-innerHeight;document.querySelector('.scroll-line span').style.height=(h?scrollY/h*100:0)+'%';},{passive:true});
-menu?.addEventListener('click',()=>{const open=mobile.classList.toggle('open');body.classList.toggle('lock',open);menu.setAttribute('aria-expanded',String(open));mobile.setAttribute('aria-hidden',String(!open));});
-mobile?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{mobile.classList.remove('open');body.classList.remove('lock');menu.setAttribute('aria-expanded','false');mobile.setAttribute('aria-hidden','true')}));
-const observer=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target)}}),{threshold:.12});document.querySelectorAll('.reveal').forEach(e=>observer.observe(e));
-const filters=[...document.querySelectorAll('.filter button')], items=[...document.querySelectorAll('.archive-item')];
-filters.forEach(b=>b.addEventListener('click',()=>{filters.forEach(x=>x.classList.remove('active'));b.classList.add('active');const f=b.dataset.filter;items.forEach(i=>i.classList.toggle('is-hidden',f!=='all'&&i.dataset.category!==f));}));
-const lb=document.querySelector('.lightbox'), lbImg=lb.querySelector('img'), lbCap=lb.querySelector('figcaption');let current=0;
-function visible(){return items.filter(i=>!i.classList.contains('is-hidden'))}function setLb(i){const list=visible(),item=list[i];if(!item)return;current=i;lbImg.src=item.dataset.full;lbImg.alt=item.querySelector('img').alt;lbCap.textContent=item.querySelector('span').textContent}
-items.forEach(item=>item.addEventListener('click',()=>{const list=visible();setLb(list.indexOf(item));lb.classList.add('open');lb.setAttribute('aria-hidden','false');body.classList.add('lock')}));
-function closeLb(){lb.classList.remove('open');lb.setAttribute('aria-hidden','true');body.classList.remove('lock');setTimeout(()=>lbImg.src='',250)}
-function step(d){const list=visible();if(!list.length)return;setLb((current+d+list.length)%list.length)}
-lb.querySelector('.lb-close').addEventListener('click',closeLb);lb.querySelector('.lb-prev').addEventListener('click',()=>step(-1));lb.querySelector('.lb-next').addEventListener('click',()=>step(1));lb.addEventListener('click',e=>{if(e.target===lb)closeLb()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();if(lb.classList.contains('open')&&e.key==='ArrowLeft')step(-1);if(lb.classList.contains('open')&&e.key==='ArrowRight')step(1)});
-const cursor=document.querySelector('.cursor');if(cursor&&matchMedia('(pointer:fine)').matches){addEventListener('pointermove',e=>cursor.style.left=e.clientX+'px', {passive:true});addEventListener('pointermove',e=>cursor.style.top=e.clientY+'px',{passive:true});document.querySelectorAll('a,button,video').forEach(el=>{el.addEventListener('mouseenter',()=>cursor.classList.add('active'));el.addEventListener('mouseleave',()=>cursor.classList.remove('active'))})}
-const vids=[...document.querySelectorAll('video')];const vo=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target;if(e.isIntersecting&&e.intersectionRatio>.25){v.play().catch(()=>{})}else if(!v.controls)v.pause()}),{threshold:[0,.25,.6]});vids.forEach(v=>vo.observe(v));
-document.querySelectorAll('img').forEach(img=>img.addEventListener('error',()=>img.closest('.archive-item,.feature-main,.feature-side,.about-photo,.full-image,.cta-bg')?.classList.add('media-error')));
+(function(){
+ const bar=document.querySelector('.progress i');
+ addEventListener('scroll',()=>{const h=document.documentElement.scrollHeight-innerHeight;if(bar)bar.style.width=(h?scrollY/h*100:0)+'%'},{passive:true});
+ const nav=document.querySelector('.nav');
+ addEventListener('scroll',()=>nav&&nav.classList.toggle('scrolled',scrollY>50),{passive:true});
+ const menu=document.querySelector('.menu'), mobile=document.querySelector('.mobile-panel');
+ if(menu&&mobile){menu.addEventListener('click',()=>{const open=menu.getAttribute('aria-expanded')==='true';menu.setAttribute('aria-expanded',String(!open));mobile.classList.toggle('open',!open);document.body.classList.toggle('no-scroll',!open)});mobile.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{menu.setAttribute('aria-expanded','false');mobile.classList.remove('open');document.body.classList.remove('no-scroll')}));}
+ const lb=document.querySelector('.lightbox');
+ if(lb){const image=lb.querySelector('img'),caption=lb.querySelector('.lb-caption'),prev=lb.querySelector('.lb-prev'),next=lb.querySelector('.lb-next');let items=[],index=0;
+  function render(){const item=items[index];image.src=item.dataset.full;image.alt=item.dataset.alt||'';caption.textContent=item.dataset.caption||''}
+  function open(item){items=[...document.querySelectorAll('.photo-item')];index=items.indexOf(item);render();lb.classList.add('open');lb.setAttribute('aria-hidden','false');document.body.classList.add('no-scroll')}
+  function close(){lb.classList.remove('open');lb.setAttribute('aria-hidden','true');document.body.classList.remove('no-scroll');image.src=''}
+  document.querySelectorAll('.photo-item').forEach(item=>item.addEventListener('click',()=>open(item)));
+  lb.querySelector('.lb-close').addEventListener('click',close);prev.addEventListener('click',()=>{index=(index-1+items.length)%items.length;render()});next.addEventListener('click',()=>{index=(index+1)%items.length;render()});lb.addEventListener('click',e=>{if(e.target===lb)close()});document.addEventListener('keydown',e=>{if(!lb.classList.contains('open'))return;if(e.key==='Escape')close();if(e.key==='ArrowLeft')prev.click();if(e.key==='ArrowRight')next.click()});
+ }
+})();
 
-// Reliable back-to-top control: explicit scroll instead of relying only on the anchor default.
-document.querySelectorAll('.back-to-top, .footer a[aria-label="Back to top"]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});}));
+/* Hero reel autoplay + browser-safe sound control */
+(function(){
+  const reel = document.getElementById('heroReel');
+  const sound = document.getElementById('heroReelSound');
+  if(!reel || !sound) return;
+
+  reel.muted = true;
+  const tryPlay = () => {
+    const p = reel.play();
+    if(p && typeof p.catch === 'function') p.catch(()=>{});
+  };
+  tryPlay();
+
+  sound.addEventListener('click', async () => {
+    if(reel.muted){
+      reel.muted = false;
+      try{
+        await reel.play();
+        sound.textContent = 'Sound on';
+        sound.classList.add('is-on');
+        sound.setAttribute('aria-label','Turn reel sound off');
+      }catch(e){
+        reel.muted = true;
+        sound.textContent = 'Tap for sound';
+      }
+    }else{
+      reel.muted = true;
+      sound.textContent = 'Sound';
+      sound.classList.remove('is-on');
+      sound.setAttribute('aria-label','Turn reel sound on');
+    }
+  });
+})();
+
+// Reliable back-to-top button on every page
+(function(){
+  const btn=document.getElementById('backToTop');
+  if(!btn) return;
+  const toggle=()=>btn.classList.toggle('show',window.scrollY>500);
+  window.addEventListener('scroll',toggle,{passive:true});
+  toggle();
+  btn.addEventListener('click',()=>{
+    window.scrollTo({top:0,left:0,behavior:'smooth'});
+    // Fallback for browsers that ignore smooth scrolling
+    setTimeout(()=>{if(window.scrollY>20) window.scrollTo(0,0)},700);
+  });
+})();
